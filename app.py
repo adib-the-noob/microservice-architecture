@@ -66,6 +66,22 @@ def login():
         'message': 'Invalid Password'
     })
 
+@server.route('/validate', methods=['GET'])
+def validate():
+    encoded_token = request.headers['Authorization']
+    token = encoded_token.split(' ')[1]
+
+    encoded_jwt = jwt.decode(token, server.config['SECRET_KEY'], algorithms='HS256')
+    try:
+        user = User.query.filter_by(username=encoded_jwt['username']).first()
+        if user:
+            return jsonify({
+                'message': 'Token is valid'
+            })
+    except:
+        return jsonify({
+            'message': 'Token is invalid'
+        })
 
 def createJWT(username, secret):
     token = jwt.encode({
