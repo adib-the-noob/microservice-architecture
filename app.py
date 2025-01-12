@@ -5,7 +5,7 @@ from flask_bcrypt import Bcrypt
 
 import jwt
 import datetime
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 from models import User
@@ -44,33 +44,39 @@ def register():
 
 @server.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    if not data["username"] or not data["password"]:
+    auth = request.authorization
+    if not auth:
         return jsonify({
-            'message': 'Could not verify',
-            'WWW-Authenticate': 'Basic auth="Login required"'
-        }, 401)
-
-    user = User.query.filter_by(username=data["username"]).first()
+            'message': 'Missing Authorization Header'
+        })
     
+    user = User.query.filter_by(username=auth.username).first()
     if not user:
         return jsonify({
-            'message': 'Could not verify',
-            'WWW-Authenticate': 'Basic auth="Login required"'
-        }, 401)
+            'message': 'User not found'
+        })
     
-    if bcrypt.check_password_hash(user.password, data["password"]):
-        token = jwt.encode({
-            'user_id': user.id,
-            'exp': datetime.utcnow() + timedelta(minutes=30)
-        }, server.config['SECRET_KEY'])
+    if bcrypt.check_password_hash(user.password, auth.password):
+        token = createJWT(user.username, server.config['SECRET_KEY'])
         return jsonify({
-            'message': 'Login successful',
+            'message': 'Login Successful',
             'token': token
         })
+    return jsonify({
+        'message': 'Invalid Password'
+    })
+
+
+def createJWT(username, secret):
+    token = jwt.encode({
+        'username': username,
+        'exp': datetime.now(tz=timezone.utc) + timedelta(minutes=90),
+        'iat': datetime.now(tz=timezone.utc)
+    }, secret, algorithm='HS256')
+    return token
     
 
 if __name__ == '__main__':
     with server.app_context():
         db.create_all()
-    server.run(debug=True, port=8000)
+    server.run(debug=True, port=8000, host='0.0.0.0')
