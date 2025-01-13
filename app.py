@@ -3,7 +3,8 @@ from flask import request, jsonify, make_response, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 
-import jwt
+from jwt import encode, decode
+
 import datetime
 from datetime import datetime, timedelta, timezone
 
@@ -84,7 +85,7 @@ def validate():
         })
 
 def createJWT(username, secret):
-    token = jwt.encode({
+    token = encode({
         'username': username,
         'exp': datetime.now(tz=timezone.utc) + timedelta(minutes=90),
         'iat': datetime.now(tz=timezone.utc)
@@ -95,4 +96,4 @@ def createJWT(username, secret):
 if __name__ == '__main__':
     with server.app_context():
         db.create_all()
-    server.run(debug=True, port=8000, host='0.0.0.0')
+    server.run(debug=True, port=5000, host='0.0.0.0')
